@@ -1,0 +1,22 @@
+{
+  "name": "cowboy",
+  "version": "0.0.1",
+  "description": "Runs node server instances using forever-monitor.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "JR Liwag",
+  "license": "BSD",
+  "dependencies": {
+    "nodewatch": "~0.3.1",
+    "forever-monitor": "~1.2.2",
+    "optimist": "~0.6.0",
+    "watchr": "~2.4.3",
+    "express": "~3.4.4",
+    "winston": "~0.7.2",
+    "express3-handlebars": "~0.5.0",
+    "httperrors": "~0.4.0"
+  }
+}
