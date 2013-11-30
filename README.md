@@ -10,7 +10,8 @@ Usage:
     cowboy({
         workers: 2,
         port: 3000,
-        // This file will be require()'d by serverrunner's worker and should return an http.Server instance such as an express app.
+        // This file will be require()'d by serverrunner's worker and should return
+        // an http.Server instance such as an express app.
         server: './app.js'),
         watch: './'
     });

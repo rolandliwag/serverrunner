@@ -1,5 +1,4 @@
 var forever = require('forever-monitor'),
-    express = require('express'),
     path = require('path'),
     watchr = require('watchr');
 
