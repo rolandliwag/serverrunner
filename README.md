@@ -3,10 +3,11 @@ serverrunner
 
 serverrunner starts node servers and then keeps them running. Allows for graceful shutdowns.
 
+
 Installation
 ------------
 
-npm install serverrunner
+    npm install serverrunner
 
 
 Usage
@@ -14,7 +15,7 @@ Usage
 
     var serverrunner = require('serverrunner');
 
-    cowboy({
+    serverrunner({
         workers: 2,
         port: 3000,
         // This file will be require()'d by serverrunner's worker and should return
@@ -30,4 +31,3 @@ Next Features
   * Graceful restart
   * Multiple servers and ports
   * Selective shutdown/restart of workers
-
