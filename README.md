@@ -20,7 +20,7 @@ Usage
         port: 3000,
         // This file will be require()'d by serverrunner's worker and should return
         // an http.Server instance such as an express app.
-        server: './app.js'),
+        server: './app.js',
         watch: './'
     });
 
