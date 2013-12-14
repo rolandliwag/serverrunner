@@ -21,7 +21,8 @@ Usage
         // This file will be require()'d by serverrunner's worker and should return
         // an http.Server instance such as an express app.
         server: './app.js',
-        watch: './'
+        watch: './',
+        configFile: './config.cjson'
     });
 
 

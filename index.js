@@ -1,7 +1,8 @@
 var path = require('path'),
     child = require('child_process'),
     watchr = require('watchr'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    oconf = require('oconf');
 
 /**
  * @public
@@ -11,14 +12,20 @@ var path = require('path'),
  * @cfg {String} [watch] Directory to watch for changes. Workers will restart if
  * any files in this directory change.
  */
-module.exports = function (config) {
+module.exports = function (options) {
     var workers = [],
-        numWorkers = config.workers,
-        serverFile = config.server,
-        startPort = config.port,
-        watchDir = config.watch,
+        numWorkers = options.workers,
+        serverFile = options.server,
+        startPort = options.port,
+        watchDir = options.watch,
         serverWorker = path.resolve(__dirname, 'lib/worker.js'),
+        config,
         index;
+
+    if (options.configFile) {
+        config = oconf.load(options.configFile);
+        console.log('Config loaded from ' + options.configFile);
+    }
 
     /**
      * Start the workers
@@ -30,11 +37,11 @@ module.exports = function (config) {
     }
 
     /**
-     * Start the workers
+     * Start a worker on a specific port
      * @private
      */
     function startWorker(port) {
-        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile]);
+        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(config)]);
 
         worker.on('exit', createWorkerExitHandler(port));
         return worker;
@@ -103,7 +110,11 @@ module.exports = function (config) {
         return function (code, signal) {
             if (code !== 0 || code === null) {
                 console.log('Worker exited with code: ' + code);
-                workers[port - startPort] = startWorker(port);
+
+                // Start worker again after 1 sec
+                setTimeout(function () {
+                    workers[port - startPort] = startWorker(port);
+                }, 1000);
             }
         };
     }
@@ -117,7 +128,8 @@ module.exports = function (config) {
     if (watchDir !== undefined) {
         watchr.watch({
             path: watchDir,
-            ignoreCustomPatterns: /^\./,
+            ignoreHiddenFiles: true,
+            duplicateDelay: 100,
             listener: function(event, filename) {
                 console.log(filename + ' changed.');
                 restartWorkers();
