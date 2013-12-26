@@ -6,26 +6,30 @@ var path = require('path'),
 
 /**
  * @public
- * @cfg {Number} workers Number of workers to create.
- * @cfg {String} server Path to server file.
- * @cfg {Number} port Port number to start serving from.
- * @cfg {String} [watch] Directory to watch for changes. Workers will restart if
+ * @param {options} Mixed Either a configFile path or config options.
+ * @param {Number} [options.workers] Number of workers to create.
+ * @param {String} [options.server] Path to server file.
+ * @param {Number} [options.port] Port number to start serving from.
+ * @param {String} [options.watch] Directory to watch for changes. Workers will restart if
  * any files in this directory change.
  */
 module.exports = function (options) {
     var workers = [],
-        numWorkers = options.workers,
-        serverFile = options.server,
-        startPort = options.port,
-        watchDir = options.watch,
         serverWorker = path.resolve(__dirname, 'lib/worker.js'),
-        config,
-        index;
+        numWorkers,
+        serverFile,
+        startPort,
+        watchDir;
 
-    if (options.configFile) {
-        config = oconf.load(options.configFile);
-        console.log('Config loaded from ' + options.configFile);
+    if (typeof options === 'string') {
+        console.log('Loading config from ' + options);
+        options = oconf.load(options);
     }
+
+    numWorkers = options.workers;
+    serverFile = options.server;
+    startPort = options.port;
+    watchDir = options.watch;
 
     /**
      * Start the workers
@@ -41,7 +45,7 @@ module.exports = function (options) {
      * @private
      */
     function startWorker(port) {
-        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(config)]);
+        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(options)]);
 
         worker.on('exit', createWorkerExitHandler(port));
         return worker;
@@ -62,11 +66,12 @@ module.exports = function (options) {
 
             alreadyShuttingDown = true;
 
-            var runningWorkers = numWorkers;
-
             function exitWhenAllWorkersExit() {
-                runningWorkers -= 1;
-                if (runningWorkers === 0) {
+                var allWorkersExited = workers.every(function (worker) {
+                    return worker === null;
+                });
+
+                if (allWorkersExited) {
                     console.log('All workers exited.');
                     workers = [];
                     alreadyShuttingDown = false;
@@ -77,16 +82,21 @@ module.exports = function (options) {
             console.log("\nShutting down workers...");
 
             workers.forEach(function (worker, index) {
-                worker.on('exit', function () {
+                if (worker === null) {
                     exitWhenAllWorkersExit();
-                });
+                } else {
+                    worker.on('exit', function () {
+                        exitWhenAllWorkersExit();
+                    });
 
-                worker.kill('SIGTERM');
+                    worker.kill('SIGTERM');
+                }
             });
         };
     }());
 
     function shutdownMaster() {
+        shuttingDown = true;
         shutdownWorkers(function () {
             process.exit();
         });
@@ -108,17 +118,21 @@ module.exports = function (options) {
      */
     function createWorkerExitHandler(port) {
         return function (code, signal) {
+            workers[port - startPort] = null;
             if (code !== 0 || code === null) {
                 console.log('Worker exited with code: ' + code);
 
-                // Start worker again after 1 sec
-                setTimeout(function () {
-                    workers[port - startPort] = startWorker(port);
-                }, 1000);
+                if (!shuttingDown) {
+                    // Start worker again after 1 sec
+                    setTimeout(function () {
+                        workers[port - startPort] = startWorker(port);
+                    }, 1000);
+                }
             }
         };
     }
 
+    var shuttingDown = false;
     startWorkers();
 
     // Graceful shutdown when SIGINT received
