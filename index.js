@@ -16,6 +16,7 @@ var path = require('path'),
 module.exports = function (options) {
     var workers = [],
         serverWorker = path.resolve(__dirname, 'lib/worker.js'),
+        config,
         numWorkers,
         serverFile,
         startPort,
@@ -23,13 +24,17 @@ module.exports = function (options) {
 
     if (typeof options === 'string') {
         console.log('Loading config from ' + options);
-        options = oconf.load(options);
+        config = oconf.load(options);
+        console.log(path.resolve(path.dirname(options), config.server));
+        config.server = path.resolve(path.dirname(options), config.server);
+    } else {
+        config = options;
     }
 
-    numWorkers = options.workers;
-    serverFile = options.server;
-    startPort = options.port;
-    watchDir = options.watch;
+    numWorkers = config.workers;
+    serverFile = config.server;
+    startPort = config.port;
+    watchDir = config.watch;
 
     /**
      * Start the workers
