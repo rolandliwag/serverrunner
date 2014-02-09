@@ -91,6 +91,7 @@ module.exports = function (options) {
                     exitWhenAllWorkersExit();
                 } else {
                     worker.on('exit', function () {
+                        delete workers[startPort + index];
                         exitWhenAllWorkersExit();
                     });
 
@@ -123,14 +124,19 @@ module.exports = function (options) {
      */
     function createWorkerExitHandler(port) {
         return function (code, signal) {
-            workers[port - startPort] = null;
+            var workerIndex = port - startPort;
+
+            workers[workerIndex] = null;
+
             if (code !== 0 || code === null) {
                 console.log('Worker exited with code: ' + code);
 
                 if (!shuttingDown) {
                     // Start worker again after 1 sec
                     setTimeout(function () {
-                        workers[port - startPort] = startWorker(port);
+                        if (!workers[workerIndex]) {
+                            workers[workerIndex] = startWorker(port);
+                        }
                     }, 1000);
                 }
             }
