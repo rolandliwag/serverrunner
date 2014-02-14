@@ -34,7 +34,7 @@ module.exports = function (options) {
     numWorkers = config.workers;
     serverFile = config.server;
     startPort = config.port;
-    watchDir = config.watch;
+    watchDir = path.resolve(path.dirname(require.main.filename), config.watch);
 
     /**
      * Start the workers
@@ -50,7 +50,7 @@ module.exports = function (options) {
      * @private
      */
     function startWorker(port) {
-        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(options)]);
+        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(config.app)]);
 
         worker.on('exit', createWorkerExitHandler(port));
         return worker;
