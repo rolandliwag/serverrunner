@@ -50,7 +50,7 @@ module.exports = function (options) {
      * @private
      */
     function startWorker(port) {
-        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(config.app)]);
+        var worker = child.fork(serverWorker, ['--port', port, '--server', serverFile, '--config', JSON.stringify(config.app || {})]);
 
         worker.on('exit', createWorkerExitHandler(port));
         return worker;
