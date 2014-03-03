@@ -10,6 +10,7 @@
     "optimist": "~0.6.0",
     "watchr": "~2.4.3",
     "underscore": "~1.5.2",
-    "oconf": "0.0.9"
+    "oconf": "0.0.9",
+    "express": "~3.4.8"
   }
 }
