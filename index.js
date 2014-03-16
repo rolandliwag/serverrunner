@@ -25,7 +25,6 @@ module.exports = function (options) {
     if (typeof options === 'string') {
         console.log('Loading config from ' + options);
         config = oconf.load(options);
-        console.log(path.resolve(path.dirname(options), config.server));
         config.server = path.resolve(path.dirname(options), config.server);
     } else {
         config = options;
@@ -35,6 +34,7 @@ module.exports = function (options) {
     serverFile = config.server;
     startPort = config.port;
     allowForcedExit = config.allowForcedExit || false;
+    disgraceful = config.disgraceful || false;
     watchDir = path.resolve(path.dirname(require.main.filename), config.watch);
 
     /**
@@ -65,12 +65,14 @@ module.exports = function (options) {
     /**
      * Shut down all workers
      * @private
+     * @param {Boolean} nonGraceful Set to true to avoid waiting for connections
+     * to close.
      * @param {Function} cb
      */
     var shutdownWorkers = (function () {
         var alreadyShuttingDown = false;
 
-        return function (cb) {
+        return function (nonGraceful, cb) {
             if (alreadyShuttingDown) {
                 return;
             }
@@ -101,7 +103,11 @@ module.exports = function (options) {
                         exitWhenAllWorkersExit();
                     });
 
-                    worker.kill('SIGTERM');
+                    if (nonGraceful) {
+                        worker.kill('SIGKILL');
+                    } else {
+                        worker.kill('SIGTERM');
+                    }
                 }
             });
         };
@@ -109,7 +115,7 @@ module.exports = function (options) {
 
     function shutdownMaster() {
         shuttingDown = true;
-        shutdownWorkers(function () {
+        shutdownWorkers(disgraceful, function () {
             process.exit();
         });
     }
@@ -117,9 +123,11 @@ module.exports = function (options) {
     /**
      * Restart all workers
      * @private
+     * @param {Boolean} [nonGraceful] Set to true to avoid waiting for connections
+     * to close.
      */
-    function restartWorkers() {
-        shutdownWorkers(startWorkers);
+    function restartWorkers(nonGraceful) {
+        shutdownWorkers(nonGraceful, startWorkers);
     }
 
     /**
@@ -161,9 +169,10 @@ module.exports = function (options) {
             path: watchDir,
             ignoreHiddenFiles: true,
             duplicateDelay: 100,
+            persistent: false,
             listener: function(event, filename) {
                 console.log(filename + ' changed.');
-                restartWorkers();
+                restartWorkers(disgraceful);
             }
         });
     }
