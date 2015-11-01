@@ -1,6 +1,6 @@
 var path = require('path'),
     child = require('child_process'),
-    watchr = require('watchr'),
+    watch = require('watch'),
     _ = require('underscore'),
     oconf = require('oconf');
 
@@ -165,12 +165,10 @@ module.exports = function (options) {
 
     // Restart workers if watchDir contents change
     if (watchDir !== undefined) {
-        watchr.watch({
-            path: watchDir,
-            ignoreHiddenFiles: true,
-            duplicateDelay: 100,
-            persistent: false,
-            listener: function(event, filename) {
+        watch.watchTree(watchDir, function(filename, prev, curr) {
+            if (typeof filename == "object" && prev === null && curr === null) {
+                console.log('Watching ' + watchDir + ' for changes');
+            } else {
                 console.log(filename + ' changed.');
                 restartWorkers(disgraceful);
             }
