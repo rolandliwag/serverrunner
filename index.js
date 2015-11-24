@@ -20,7 +20,9 @@ module.exports = function (options) {
         numWorkers,
         serverFile,
         startPort,
-        watchDir;
+        watchDir,
+        workerTitle,
+        masterTitle;
 
     if (typeof options === 'string') {
         console.log('Loading config from ' + options);
@@ -31,11 +33,14 @@ module.exports = function (options) {
     }
 
     numWorkers = config.workers;
-    serverFile = config.server;
+    serverFile = path.resolve(path.dirname(require.main.filename), config.server);
     startPort = config.port;
     allowForcedExit = config.allowForcedExit || false;
     disgraceful = config.disgraceful || false;
-    watchDir = path.resolve(path.dirname(require.main.filename), config.watch);
+    watchDir = config.watch ? path.resolve(path.dirname(require.main.filename), config.watch) : null;
+    workerTitle = config.workerTitle || 'server-worker';
+
+    process.title = config.serverTitle || 'server-master';
 
     /**
      * Start the workers
@@ -55,7 +60,8 @@ module.exports = function (options) {
             '--port', port,
             '--server', serverFile,
             '--allowForcedExit', allowForcedExit,
-            '--config', JSON.stringify(config.app || {})
+            '--config', JSON.stringify(config.app || {}),
+            '--title', workerTitle
         ]);
 
         worker.on('exit', createWorkerExitHandler(port));
@@ -164,7 +170,7 @@ module.exports = function (options) {
     process.on('SIGINT', shutdownMaster);
 
     // Restart workers if watchDir contents change
-    if (watchDir !== undefined) {
+    if (watchDir) {
         watch.watchTree(watchDir, function(filename, prev, curr) {
             if (typeof filename == "object" && prev === null && curr === null) {
                 console.log('Watching ' + watchDir + ' for changes');
